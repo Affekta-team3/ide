@@ -1,15 +1,32 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import io
+import sys
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Enable CORS for all routes
 
 @app.route('/execute', methods=['POST'])
 def execute_code():
-    code = request.json.get('code')
-    exec_locals = {}
-    exec(code, {}, exec_locals)
-    return jsonify(exec_locals)
+    data = request.get_json()
+    code = data.get('code', '')
+
+    try:
+        # Redirect stdout to capture print statements
+        old_stdout = sys.stdout
+        new_stdout = io.StringIO()
+        sys.stdout = new_stdout
+        
+        # Execute the code
+        exec(code, {}, {})
+        
+        # Reset stdout and capture output
+        sys.stdout = old_stdout
+        result = new_stdout.getvalue()
+
+        return jsonify({"result": result})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5000, debug=True)
