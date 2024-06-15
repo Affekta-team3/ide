@@ -11,21 +11,21 @@ def execute_code():
     data = request.get_json()
     code = data.get('code', '')
 
+    old_stdout = sys.stdout
+    sys.stdout = new_stdout = io.StringIO()
+
     try:
-        # Redirect stdout to capture print statements
-        old_stdout = sys.stdout
-        new_stdout = io.StringIO()
-        sys.stdout = new_stdout
-        
-        # Execute the code
         exec(code, {}, {})
         
-        # Reset stdout and capture output
+        output = new_stdout.getvalue()
         sys.stdout = old_stdout
-        result = new_stdout.getvalue()
 
-        return jsonify({"result": result})
+        return jsonify({"result": output.strip()})  # Strip to remove any extraneous whitespace
+    except SyntaxError as e:
+        sys.stdout = old_stdout
+        return jsonify({"error": f"SyntaxError: {e.msg} at line {e.lineno}, column {e.offset}"})
     except Exception as e:
+        sys.stdout = old_stdout
         return jsonify({"error": str(e)})
 
 if __name__ == '__main__':
